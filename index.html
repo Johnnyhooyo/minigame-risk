@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>探险解谜 - 登录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(180deg, #0C0C1E 0%, #1A1A3E 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 414px;
+            height: 100vh;
+            max-height: 896px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景星空 */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 2s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* 浮动萤火虫 */
+        .firefly {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #FDCB6E;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FDCB6E, 0 0 20px #FDCB6E;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-20px) translateX(10px); }
+            50% { transform: translateY(-10px) translateX(-10px); }
+            75% { transform: translateY(-30px) translateX(5px); }
+        }
+
+        /* 主内容区 */
+        .login-content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* 标题 */
+        .title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #FDCB6E;
+            text-shadow: 0 0 20px rgba(253, 203, 110, 0.5);
+            margin-bottom: 60px;
+            animation: slideIn 0.5s ease-out;
+            text-align: center;
+        }
+
+        .title-sub {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+            font-weight: normal;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* 输入框容器 */
+        .input-wrapper {
+            width: 100%;
+            max-width: 280px;
+            margin-bottom: 40px;
+            animation: slideIn 0.5s ease-out 0.2s both;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .name-input {
+            width: 100%;
+            height: 50px;
+            padding: 0 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2D3436;
+            background: rgba(255, 255, 255, 0.85);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .name-input::placeholder {
+            color: #999;
+            font-weight: normal;
+        }
+
+        .name-input:focus {
+            border-color: #A29BFE;
+            box-shadow: 0 0 15px rgba(162, 155, 254, 0.4);
+            transform: scale(1.02);
+        }
+
+        /* 错误提示 */
+        .error-tip {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 8px;
+            text-align: center;
+            height: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .error-tip.show {
+            opacity: 1;
+        }
+
+        /* 开始按钮 */
+        .start-btn {
+            width: 200px;
+            height: 50px;
+            background: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out 0.4s both;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .start-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.5);
+        }
+
+        .start-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .start-btn:disabled {
+            background: linear-gradient(135deg, #636e72 0%, #b2bec3 100%);
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
+        /* 欢迎回来 */
+        .welcome-tip {
+            position: absolute;
+            bottom: 40px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            animation: slideIn 0.5s ease-out 0.6s both;
+        }
+
+        .welcome-tip span {
+            color: #FDCB6E;
+            cursor: pointer;
+        }
+
+        /* 游戏主界面（隐藏） */
+        .game-main {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #0C0C1E 0%, #1A1A3E 100%);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-main.show {
+            display: flex;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .player-info {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+
+        .player-name {
+            color: #FDCB6E;
+            font-weight: bold;
+        }
+
+        .game-tips {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 背景星星 -->
+        <div class="stars" id="stars"></div>
+        
+        <!-- 登录页面 -->
+        <div class="login-content" id="login-page">
+            <div class="title">
+                🏰 探险解谜
+                <div class="title-sub">开启你的冒险之旅</div>
+            </div>
+            
+            <div class="input-wrapper">
+                <div class="input-container">
+                    <input 
+                        type="text" 
+                        class="name-input" 
+                        id="nameInput"
+                        placeholder="输入你的名字"
+                        maxlength="12"
+                        autocomplete="off"
+                    >
+                </div>
+                <div class="error-tip" id="errorTip"></div>
+            </div>
+            
+            <button class="start-btn" id="startBtn" disabled>开始探险</button>
+            
+            <div class="welcome-tip" id="welcomeTip" style="display: none;">
+                欢迎回来，<span id="cachedName"></span>！<br>
+                <span id="changeName">换个名字</span>
+            </div>
+        </div>
+        
+        <!-- 游戏主界面 -->
+        <div class="game-main" id="gamePage">
+            <div class="player-info">
+                你好，<span class="player-name" id="playerName"></span>！
+            </div>
+            <div class="game-tips">🎮 探险即将开始...</div>
+        </div>
+    </div>
+
+    <script src="./assets/scripts/game.js"></script>
+</body>
+</html>

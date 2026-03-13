@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>探险解谜 - 神秘森林</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --accent: #ffd700;
+            --bg-dark: #0a0f0a;
+            --bg-light: #1a2a1a;
+            --text: #ffffff;
+            --text-dim: #888888;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+            background: var(--bg-dark);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            max-height: 900px;
+            position: relative;
+            background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-light) 100%);
+            overflow: hidden;
+        }
+
+        /* 游戏画布 */
+        #game-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(108, 92, 231, 0.3);
+        }
+
+        /* 顶部状态栏 */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-item .icon { font-size: 18px; }
+        .status-item .value { color: var(--accent); }
+
+        /* 退出按钮 */
+        #exit-btn {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-dim);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #exit-btn:hover { background: rgba(255,255,255,0.2); color: var(--text); }
+
+        /* 虚拟摇杆 */
+        #joystick-area {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(108, 92, 231, 0.3) 0%, rgba(108, 92, 231, 0.1) 100%);
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.2);
+            z-index: 50;
+            touch-action: none;
+        }
+
+        #joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, var(--secondary) 0%, var(--primary) 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.5);
+            transition: transform 0.1s;
+        }
+
+        #joystick-knob:active {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        /* 背包按钮 */
+        #inventory-btn {
+            position: absolute;
+            bottom: 60px;
+            right: 40px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            color: #fff;
+            cursor: pointer;
+            z-index: 50;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #inventory-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.6);
+        }
+
+        /* 对话框 */
+        #dialogue-box {
+            position: absolute;
+            bottom: 140px;
+            left: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, rgba(20, 20, 40, 0.95) 0%, rgba(30, 30, 60, 0.95) 100%);
+            border-radius: 16px;
+            padding: 20px;
+            color: var(--text);
+            font-size: 15px;
+            display: none;
+            z-index: 80;
+            border: 2px solid var(--primary);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        #dialogue-box .npc-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        #dialogue-box .npc-name {
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        #dialogue-box .dialogue-text {
+            line-height: 1.7;
+            margin-bottom: 12px;
+            min-height: 44px;
+        }
+
+        #dialogue-box .continue {
+            text-align: right;
+            color: var(--text-dim);
+            font-size: 12px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* 背包界面 */
+        #inventory-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #inventory-modal.show { display: flex; }
+
+        #inventory-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 24px;
+            padding: 24px;
+            width: 85%;
+            max-width: 320px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        #inventory-content h3 {
+            color: var(--accent);
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .inventory-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .inv-slot {
+            aspect-ratio: 1;
+            background: rgba(108, 92, 231, 0.15);
+            border: 2px solid rgba(108, 92, 231, 0.3);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            transition: all 0.2s;
+        }
+
+        .inv-slot.has-item {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: var(--accent);
+            animation: itemGlow 2s infinite;
+        }
+
+        @keyframes itemGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        }
+
+        #close-inv {
+            display: block;
+            margin: 24px auto 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #close-inv:hover { transform: scale(1.05); }
+
+        /* 提示 */
+        #tip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: var(--accent);
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            display: none;
+            z-index: 150;
+            text-align: center;
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            animation: tipPop 0.3s;
+        }
+
+        @keyframes tipPop {
+            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* 通关画面 */
+        #victory-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(26, 26, 46, 0.98) 0%, rgba(10, 10, 20, 0.98) 100%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            animation: victoryFade 0.5s;
+        }
+
+        @keyframes victoryFade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #victory-screen.show { display: flex; }
+
+        #victory-screen .trophy {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        #victory-screen h1 {
+            color: var(--accent);
+            font-size: 28px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        #victory-screen .subtitle {
+            color: var(--text-dim);
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        #victory-screen .stats {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        #victory-screen .stat {
+            text-align: center;
+        }
+
+        #victory-screen .stat-value {
+            font-size: 32px;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        #victory-screen .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        #victory-screen button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            border: none;
+            padding: 14px 48px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.5);
+            transition: transform 0.2s;
+        }
+
+        #victory-screen button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 顶部状态栏 -->
+        <div id="top-bar">
+            <div class="status-item">
+                <span class="icon">🧙</span>
+                <span id="playerName">冒险家</span>
+            </div>
+            <div class="status-item">
+                <span class="icon">💎</span>
+                <span class="value"><span id="fragmentCount">0</span>/3</span>
+            </div>
+            <button id="exit-btn" onclick="exitGame()">退出</button>
+        </div>
+        
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- 虚拟摇杆 -->
+        <div id="joystick-area">
+            <div id="joystick-knob"></div>
+        </div>
+        
+        <!-- 背包按钮 -->
+        <div id="inventory-btn" onclick="showInventory()">🎒</div>
+        
+        <!-- 对话框 -->
+        <div id="dialogue-box">
+            <div class="npc-avatar" id="npcAvatar">👴</div>
+            <div class="npc-name" id="npcName"></div>
+            <div class="dialogue-text" id="dialogueText"></div>
+            <div class="continue">点击继续 ▾</div>
+        </div>
+        
+        <!-- 背包弹窗 -->
+        <div id="inventory-modal" onclick="hideInventory()">
+            <div id="inventory-content" onclick="event.stopPropagation()">
+                <h3>🎒 背包</h3>
+                <div class="inventory-slots" id="invSlots">
+                    <div class="inv-slot"></div>
+                    <div class="inv-slot"></div>
+                    <div class="inv-slot"></div>
+                    <div class="inv-slot"></div>
+                    <div class="inv-slot"></div>
+                    <div class="inv-slot"></div>
+                </div>
+                <button id="close-inv" onclick="hideInventory()">关闭</button>
+            </div>
+        </div>
+        
+        <!-- 提示 -->
+        <div id="tip"></div>
+        
+        <!-- 通关画面 -->
+        <div id="victory-screen">
+            <div class="trophy">🏆</div>
+            <h1>🎉 通关成功！</h1>
+            <p class="subtitle">恭喜你离开了神秘森林！</p>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">收集碎片</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">1</div>
+                    <div class="stat-label">对话NPC</div>
+                </div>
+            </div>
+            <button onclick="restartGame()">再玩一次</button>
+        </div>
+    </div>
+
+    <script src="./assets/scripts/level1-game.js"></script>
+</body>
+</html>
