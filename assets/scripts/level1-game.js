@@ -23,7 +23,7 @@ const CONFIG = {
     MAP_WIDTH: 50,
     MAP_HEIGHT: 50,
     PLAYER_WIDTH: 2,
-    PLAYER_HEIGHT: 5,
+    PLAYER_HEIGHT: 2,
     VIEW_WIDTH: 25,
     VIEW_HEIGHT: 25,
     MOVE_INTERVAL: 80,
@@ -227,12 +227,12 @@ function setupKeyboard() {
             else if(e.key===' '){if(PUZZLES[2].input===PUZZLES[2].correctCode){PUZZLES[2].solved=true;PUZZLES[2].onSolve();}else showTip('❌');gameState.inputMode=null;PUZZLES[2].input='';}
             else if(e.key==='Escape'){gameState.inputMode=null;PUZZLES[2].input='';} return;
         }
-        if(e.key==='d'||e.key==='D'){gameState.debugMode=!gameState.debugMode;showTip(gameState.debugMode?'🔧开':'🔧关');return;}
+        if(e.key==='x'||e.key==='X'){gameState.debugMode=!gameState.debugMode;showTip(gameState.debugMode?'🔧开':'🔧关');return;}
         if(gameState.currentDialogue){handleDialogueClick();return;}
         if(e.key===' '||e.key==='Enter'){doInteraction();return;}
-        switch(e.key){case 'ArrowUp':case 'w':case 'W':currentDirection='up';gameState.playerDir='up';break;case 'ArrowDown':case 's':case 'S':currentDirection='down';gameState.playerDir='down';break;case 'ArrowLeft':case 'a':case 'A':currentDirection='left';gameState.playerDir='left';break;case 'ArrowRight':case 'f':case 'F':if(!gameState.debugMode){currentDirection='right';gameState.playerDir='right';}break;}
+        switch(e.key){case 'ArrowUp':case 'w':case 'W':currentDirection='up';gameState.playerDir='up';break;case 'ArrowDown':case 's':case 'S':currentDirection='down';gameState.playerDir='down';break;case 'ArrowLeft':case 'a':case 'A':currentDirection='left';gameState.playerDir='left';break;case 'ArrowRight':case 'd':case 'D':if(!gameState.debugMode){currentDirection='right';gameState.playerDir='right';}break;}
     });
-    document.addEventListener('keyup', e => { if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','f','W','A','S','F'].includes(e.key))currentDirection=null; });
+    document.addEventListener('keyup', e => { if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key))currentDirection=null; });
 }
 
 function movePlayer(dir) {
@@ -267,9 +267,10 @@ function checkPushable(nx,ny){
 function checkNearInteractables(){
     const pcx=gameState.playerX+CONFIG.PLAYER_WIDTH/2, pcy=gameState.playerY+CONFIG.PLAYER_HEIGHT/2;
     gameState.nearInteractable=null;gameState.nearPuzzle=null;gameState.nearPushable=null;
-    NPCS.forEach(n=>{if(!n.met&&Math.sqrt(Math.pow(pcx-(n.x+0.5),2)+Math.pow(pcy-(n.y+0.5),2)<=2)gameState.nearInteractable={type:'npc',target:n};});
-    PUSHABLES.forEach(p=>{if(Math.sqrt(Math.pow(pcx-p.x,2)+Math.pow(pcy-p.y,2)<=2)gameState.nearPushable={type:'push',target:p};});
-    if(Math.sqrt(Math.pow(pcx-30,2)+Math.pow(pcy-15,2)<=2)gameState.nearPuzzle={type:'keypad'};
+    // 优化距离计算，使用更简洁的写法
+    NPCS.forEach(n=>{if(!n.met && Math.hypot(pcx-(n.x+0.5),pcy-(n.y+0.5))<=2){gameState.nearInteractable={type:'npc',target:n};}});
+    PUSHABLES.forEach(p=>{if(Math.hypot(pcx-p.x,pcy-p.y)<=2){gameState.nearPushable={type:'push',target:p};}});
+    if(Math.hypot(pcx-30,pcy-15)<=2){gameState.nearPuzzle={type:'keypad'};}
 }
 
 function doInteraction(){
@@ -300,13 +301,46 @@ function collectItem(item){
 function checkPuzzle3(){
     if(PUZZLES[3].solved)return;
     const s=NPCS.find(n=>n.id==='spirit');
-    let c=0;PUSHABLES.forEach(p=>{if(Math.sqrt(Math.pow(p.x-s.x,2)+Math.pow(p.y-(s.y+1),2)<=3)c++;});
+    let c=0;PUSHABLES.forEach(p=>{if(Math.hypot(p.x-s.x,p.y-(s.y+1))<=3){c++;}});
     if(c>=3){PUZZLES[3].solved=true;PUZZLES[3].onSolve();}
 }
 
-function startDialogue(npc){gameState.currentDialogue=npc;gameState.dialogueIndex=0;showDialogue(npc);}
-function showDialogue(npc){document.getElementById('dialogue-box').style.display='block';document.getElementById('npcAvatar').textContent=npc.emoji;document.getElementById('npcName').textContent=npc.name;document.getElementById('dialogueText').textContent=npc.dialogue[gameState.dialogueIndex];document.getElementById('dialogue-box').onclick=handleDialogueClick;}
-function handleDialogueClick(){gameState.dialogueIndex++;if(gameState.dialogueIndex>=gameState.currentDialogue.dialogue.length){document.getElementById('dialogue-box').style.display='none';gameState.currentDialogue=null;}else{document.getElementById('dialogueText').textContent=gameState.currentDialogue.dialogue[gameState.dialogueIndex];}}
+function startDialogue(npc){gameState.currentDialogue=npc;gameState.dialogueIndex=0;gameState.typewriterIndex=0;gameState.typewriterText='';showDialogue(npc);}
+function showDialogue(npc){
+    document.getElementById('dialogue-box').style.display='block';
+    document.getElementById('npcAvatar').textContent=npc.emoji;
+    document.getElementById('npcName').textContent=npc.name;
+    gameState.typewriterText=npc.dialogue[gameState.dialogueIndex];
+    gameState.typewriterIndex=0;
+    document.getElementById('dialogueText').textContent='';
+    typewriterEffect();
+    document.getElementById('dialogue-box').onclick=handleDialogueClick;
+}
+function typewriterEffect(){
+    if(gameState.typewriterIndex < gameState.typewriterText.length){
+        document.getElementById('dialogueText').textContent += gameState.typewriterText[gameState.typewriterIndex];
+        gameState.typewriterIndex++;
+        setTimeout(typewriterEffect, 30);
+    }
+}
+function handleDialogueClick(){
+    // 点击跳过打字机效果
+    if(gameState.typewriterIndex < gameState.typewriterText.length){
+        document.getElementById('dialogueText').textContent = gameState.typewriterText;
+        gameState.typewriterIndex = gameState.typewriterText.length;
+        return;
+    }
+    gameState.dialogueIndex++;
+    if(gameState.dialogueIndex>=gameState.currentDialogue.dialogue.length){
+        document.getElementById('dialogue-box').style.display='none';
+        gameState.currentDialogue=null;
+    }else{
+        gameState.typewriterText=gameState.currentDialogue.dialogue[gameState.dialogueIndex];
+        gameState.typewriterIndex=0;
+        document.getElementById('dialogueText').textContent='';
+        typewriterEffect();
+    }
+}
 
 function showVictory(){
     gameState.gameComplete=true;
@@ -316,7 +350,16 @@ function showVictory(){
 }
 
 function showTip(msg){const t=document.getElementById('tip');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
-function updateHUD(){document.getElementById('fragmentCount').textContent=gameState.fragmentsCollected;}
+function updateHUD(){
+    const countEl = document.getElementById('fragmentCount');
+    const oldVal = parseInt(countEl.textContent);
+    countEl.textContent = gameState.fragmentsCollected;
+    // 收集动画
+    if (gameState.fragmentsCollected > oldVal) {
+        countEl.classList.add('bump');
+        setTimeout(() => countEl.classList.remove('bump'), 300);
+    }
+}
 function showInventory(){const m=document.getElementById('inventory-modal');document.querySelectorAll('.inv-slot').forEach((s,i)=>{s.classList.remove('has-item');s.textContent='';gameState.inventory.forEach((it,j)=>{if(j<6){s.classList.add('has-item');s.textContent=it.emoji;}});});m.classList.add('show');}
 function hideInventory(){document.getElementById('inventory-modal').classList.remove('show');}
 function exitGame(){window.location.href='index.html';}
