@@ -383,11 +383,236 @@ class MapManager {
     }
 }
 
+// ==================== 2.6 分块渲染系统 ====================
+
+// 分块渲染配置
+const CHUNK_CONFIG = {
+    SIZE: 16,           // 16x16格
+    RENDER_DISTANCE: 2, // 渲染视距(块)
+    BUFFER: 1           // 边缘缓冲
+};
+
+class Chunk {
+    constructor(chunkX, chunkY, mapWidth, mapHeight) {
+        this.chunkX = chunkX;
+        this.chunkY = chunkY;
+        
+        // 计算实际块大小(处理边缘情况)
+        this.width = Math.min(CHUNK_CONFIG.SIZE, mapWidth - chunkX * CHUNK_CONFIG.SIZE);
+        this.height = Math.min(CHUNK_CONFIG.SIZE, mapHeight - chunkY * CHUNK_CONFIG.SIZE);
+        
+        this.worldX = chunkX * CHUNK_CONFIG.SIZE;
+        this.worldY = chunkY * CHUNK_CONFIG.SIZE;
+        
+        this.visible = false;
+        this.dirty = true; // 需要重绘
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = this.width * 32; // 假设瓦片大小32
+        this.canvas.height = this.height * 32;
+        this.ctx = this.canvas.getContext('2d');
+    }
+}
+
+class MapRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.map = null;
+        this.tileSize = 32;
+        this.camera = { x: 0, y: 0 };
+        this.chunks = new Map();
+        this.chunkCache = new Map();
+        this.maxCachedChunks = 20;
+        
+        // 离屏Canvas用于优化
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+    }
+    
+    // 设置地图
+    setMap(map) {
+        this.map = map;
+        this.chunks.clear();
+        this.chunkCache.clear();
+    }
+    
+    // 设置视图
+    setView(x, y, width, height) {
+        this.camera.viewX = x;
+        this.camera.viewY = y;
+        this.camera.viewWidth = width;
+        this.camera.viewHeight = height;
+    }
+    
+    // 漫游到指定位置
+    panTo(x, y) {
+        this.camera.x = x;
+        this.camera.y = y;
+    }
+    
+    // 缩放
+    zoomTo(scale) {
+        this.camera.zoom = Math.max(0.5, Math.min(2, scale));
+    }
+    
+    // 获取需要渲染的块范围
+    getVisibleChunkRange() {
+        const startChunkX = Math.floor(this.camera.x / CHUNK_CONFIG.SIZE) - CHUNK_CONFIG.BUFFER;
+        const startChunkY = Math.floor(this.camera.y / CHUNK_CONFIG.SIZE) - CHUNK_CONFIG.BUFFER;
+        const endChunkX = Math.ceil((this.camera.x + this.camera.viewWidth) / CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.BUFFER;
+        const endChunkY = Math.ceil((this.camera.y + this.camera.viewHeight) / CHUNK_CONFIG.SIZE) + CHUNK_CONFIG.BUFFER;
+        
+        return {
+            startX: Math.max(0, startChunkX),
+            startY: Math.max(0, startChunkY),
+            endX: Math.min(Math.ceil(this.map.width / CHUNK_CONFIG.SIZE), endChunkX),
+            endY: Math.min(Math.ceil(this.map.height / CHUNK_CONFIG.SIZE), endChunkY)
+        };
+    }
+    
+    // 获取或创建块
+    getChunk(chunkX, chunkY) {
+        const key = `${chunkX},${chunkY}`;
+        
+        if (this.chunks.has(key)) {
+            return this.chunks.get(key);
+        }
+        
+        // 从缓存恢复或创建新块
+        let chunk;
+        if (this.chunkCache.has(key)) {
+            chunk = this.chunkCache.get(key);
+            this.chunkCache.delete(key);
+        } else {
+            chunk = new Chunk(chunkX, chunkY, this.map.width, this.map.height);
+        }
+        
+        // 缓存管理：移除最老的块
+        if (this.chunks.size >= this.maxCachedChunks * 2) {
+            const oldestKey = this.chunks.keys().next().value;
+            const oldChunk = this.chunks.get(oldestKey);
+            this.chunks.delete(oldestKey);
+            this.chunkCache.set(oldestKey, oldChunk);
+        }
+        
+        this.chunks.set(key, chunk);
+        return chunk;
+    }
+    
+    // 渲染块
+    renderChunk(chunk) {
+        const ctx = chunk.ctx;
+        const ts = this.tileSize;
+        
+        ctx.clearRect(0, 0, chunk.canvas.width, chunk.canvas.height);
+        
+        for (let y = 0; y < chunk.height; y++) {
+            for (let x = 0; x < chunk.width; x++) {
+                const worldX = chunk.worldX + x;
+                const worldY = chunk.worldY + y;
+                
+                if (worldX >= this.map.width || worldY >= this.map.height) continue;
+                
+                const tileId = this.map.getTile(worldX, worldY, 'terrain');
+                const tile = TILE_TYPES[tileId] || TILE_TYPES[0];
+                
+                // 绘制瓦片
+                ctx.fillStyle = tile.color;
+                ctx.fillRect(x * ts, y * ts, ts, ts);
+                
+                // 绘制细节(简化版)
+                if (tile.category === TILE_CATEGORIES.VEGETATION) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.beginPath();
+                    ctx.arc(x * ts + ts/2, y * ts + ts/2, ts/3, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                
+                // 边缘
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.strokeRect(x * ts, y * ts, ts, ts);
+            }
+        }
+        
+        chunk.dirty = false;
+    }
+    
+    // 主渲染方法
+    render() {
+        if (!this.map) return;
+        
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const range = this.getVisibleChunkRange();
+        
+        // 渲染可见块
+        for (let cy = range.startY; cy < range.endY; cy++) {
+            for (let cx = range.startX; cx < range.endX; cx++) {
+                const chunk = this.getChunk(cx, cy);
+                chunk.visible = true;
+                
+                if (chunk.dirty) {
+                    this.renderChunk(chunk);
+                }
+                
+                // 绘制到主Canvas
+                const screenX = chunk.worldX * this.tileSize - this.camera.x;
+                const screenY = chunk.worldY * this.tileSize - this.camera.y;
+                
+                this.ctx.drawImage(chunk.canvas, screenX, screenY);
+            }
+        }
+        
+        // 卸载不可见块
+        for (const [key, chunk] of this.chunks) {
+            if (!chunk.visible) {
+                this.chunkCache.set(key, chunk);
+                this.chunks.delete(key);
+            } else {
+                chunk.visible = false;
+            }
+        }
+        
+        // 清理过多缓存
+        while (this.chunkCache.size > this.maxCachedChunks) {
+            const firstKey = this.chunkCache.keys().next().value;
+            this.chunkCache.delete(firstKey);
+        }
+    }
+    
+    // 设置渲染距离
+    setRenderDistance(chunks) {
+        CHUNK_CONFIG.RENDER_DISTANCE = chunks;
+    }
+    
+    // 启用/禁用裁剪
+    enableCulling(enabled) {
+        CHUNK_CONFIG.BUFFER = enabled ? 1 : 10;
+    }
+    
+    // 标记块为脏(需要重绘)
+    markDirty(x, y, width, height) {
+        const startChunkX = Math.floor(x / CHUNK_CONFIG.SIZE);
+        const startChunkY = Math.floor(y / CHUNK_CONFIG.SIZE);
+        const endChunkX = Math.ceil((x + width) / CHUNK_CONFIG.SIZE);
+        const endChunkY = Math.ceil((y + height) / CHUNK_CONFIG.SIZE);
+        
+        for (let cy = startChunkY; cy < endChunkY; cy++) {
+            for (let cx = startChunkX; cx < endChunkX; cx++) {
+                const key = `${cx},${cy}`;
+                if (this.chunks.has(key)) {
+                    this.chunks.get(key).dirty = true;
+                }
+            }
+        }
+    }
+}
+
 // 导出模块
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
-        MapData, TileLayer, GameObject, Trigger, MapManager,
+        MapData, TileLayer, GameObject, Trigger, MapManager, MapRenderer, Chunk,
         TILE_TYPES, TILE_CATEGORIES, OBJECT_TYPES, Z_LAYERS,
-        TRIGGER_CONDITIONS, TRIGGER_ACTIONS, PASSABLE_TILES
+        TRIGGER_CONDITIONS, TRIGGER_ACTIONS, PASSABLE_TILES, CHUNK_CONFIG
     };
 }
