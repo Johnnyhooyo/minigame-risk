@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图编辑器 v2.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #16213e;
+            --accent: #0f3460;
+            --gold: #ffd700;
+            --text: #eaeaea;
+            --text-dim: #888;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* 顶部菜单 */
+        #menu-bar {
+            background: var(--bg-panel);
+            padding: 8px 16px;
+            display: flex;
+            gap: 16px;
+            border-bottom: 1px solid var(--accent);
+        }
+        
+        #menu-bar button {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        #menu-bar button:hover {
+            background: var(--accent);
+        }
+        
+        #menu-bar button.primary {
+            background: var(--gold);
+            color: #000;
+        }
+        
+        /* 主布局 */
+        #main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* 左侧面板 */
+        #left-panel {
+            width: 220px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-title {
+            padding: 12px;
+            font-weight: bold;
+            color: var(--gold);
+            border-bottom: 1px solid var(--accent);
+        }
+        
+        #tile-palette {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        
+        .category {
+            margin-bottom: 12px;
+        }
+        
+        .category-title {
+            font-size: 12px;
+            color: var(--text-dim);
+            padding: 4px 0;
+            margin-bottom: 4px;
+        }
+        
+        .tile-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+        }
+        
+        .tile-btn {
+            aspect-ratio: 1;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        .tile-btn:hover {
+            transform: scale(1.1);
+            z-index: 1;
+        }
+        
+        .tile-btn.selected {
+            border-color: var(--gold);
+            box-shadow: 0 0 8px var(--gold);
+        }
+        
+        /* 工具栏 */
+        #tools {
+            padding: 8px;
+            border-top: 1px solid var(--accent);
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border: none;
+            border-radius: 4px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .tool-btn:hover {
+            background: var(--gold);
+            color: #000;
+        }
+        
+        .tool-btn.active {
+            background: var(--gold);
+            color: #000;
+        }
+        
+        /* 画布区域 */
+        #canvas-area {
+            flex: 1;
+            background: #0a0a15;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #map-canvas {
+            background: #4CAF50;
+            cursor: crosshair;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        /* 右侧面板 */
+        #right-panel {
+            width: 200px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #properties {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .prop-group {
+            margin-bottom: 16px;
+        }
+        
+        .prop-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+        
+        .prop-group input, .prop-group select {
+            width: 100%;
+            padding: 6px;
+            background: var(--accent);
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+        }
+        
+        #object-list {
+            border-top: 1px solid var(--accent);
+            padding: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .object-item {
+            padding: 6px 8px;
+            background: var(--accent);
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .object-item:hover {
+            background: var(--gold);
+            color: #000;
+        }
+        
+        /* 状态栏 */
+        #status-bar {
+            background: var(--bg-panel);
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--text-dim);
+            display: flex;
+            gap: 20px;
+            border-top: 1px solid var(--accent);
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: var(--bg-panel);
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-content h3 {
+            color: var(--gold);
+            margin-bottom: 16px;
+        }
+        
+        .modal-content textarea {
+            width: 100%;
+            height: 300px;
+            background: var(--accent);
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: var(--text);
+            font-family: monospace;
+            font-size: 12px;
+            padding: 12px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .modal-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .modal-actions .primary {
+            background: var(--gold);
+            color: #000;
+        }
+        
+        .modal-actions .secondary {
+            background: var(--accent);
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="menu-bar">
+            <button onclick="newMap()">新建</button>
+            <button onclick="openMap()">打开</button>
+            <button onclick="saveMap()">保存</button>
+            <button onclick="exportJSON()">导出JSON</button>
+            <button onclick="importJSON()">导入JSON</button>
+            <button onclick="testMap()" class="primary">测试地图</button>
+        </div>
+        
+        <div id="main">
+            <div id="left-panel">
+                <div class="panel-title">地形选择</div>
+                <div id="tile-palette"></div>
+                <div id="tools">
+                    <button class="tool-btn active" onclick="setTool('brush')" title="画笔">✏️</button>
+                    <button class="tool-btn" onclick="setTool('rect')" title="矩形">⬜</button>
+                    <button class="tool-btn" onclick="setTool('fill')" title="填充">🪣</button>
+                    <button class="tool-btn" onclick="setTool('eraser')" title="橡皮">🧹</button>
+                    <button class="tool-btn" onclick="undo()" title="撤销">↩️</button>
+                    <button class="tool-btn" onclick="redo()" title="重做">↪️</button>
+                </div>
+            </div>
+            
+            <div id="canvas-area">
+                <canvas id="map-canvas"></canvas>
+            </div>
+            
+            <div id="right-panel">
+                <div class="panel-title">地图属性</div>
+                <div id="properties">
+                    <div class="prop-group">
+                        <label>地图名称</label>
+                        <input type="text" id="map-name" value="新地图" onchange="updateMapInfo()">
+                    </div>
+                    <div class="prop-group">
+                        <label>宽度 (格)</label>
+                        <input type="number" id="map-width" value="50" min="10" max="200" onchange="resizeMap()">
+                    </div>
+                    <div class="prop-group">
+                        <label>高度 (格)</label>
+                        <input type="number" id="map-height" value="50" min="10" max="200" onchange="resizeMap()">
+                    </div>
+                    <div class="prop-group">
+                        <label>显示网格</label>
+                        <input type="checkbox" id="show-grid" checked onchange="render()">
+                    </div>
+                </div>
+                
+                <div class="panel-title">对象列表</div>
+                <div id="object-list"></div>
+            </div>
+        </div>
+        
+        <div id="status-bar">
+            <span id="cursor-pos">坐标: (0, 0)</span>
+            <span id="map-size">尺寸: 50×50</span>
+            <span id="tool-status">工具: 画笔</span>
+        </div>
+    </div>
+    
+    <div class="modal" id="io-modal">
+        <div class="modal-content">
+            <h3 id="io-title">导出地图</h3>
+            <textarea id="io-content"></textarea>
+            <div class="modal-actions">
+                <button class="primary" onclick="ioConfirm()">确定</button>
+                <button class="secondary" onclick="ioClose()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./assets/scripts/map-system.js"></script>
+    <script>
+        // 全局变量
+        let mapData = null;
+        let selectedTile = 0;
+        let currentTool = 'brush';
+        let isDrawing = false;
+        let history = [];
+        let historyIndex = -1;
+        
+        // 配置
+        const TILE_SIZE = 24;
+        let canvasWidth, canvasHeight;
+        
+        // Canvas
+        const canvas = document.getElementById('map-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 初始化
+        function init() {
+            initPalette();
+            newMap();
+            initEvents();
+        }
+        
+        // 初始化地形选择器
+        function initPalette() {
+            const palette = document.getElementById('tile-palette');
+            palette.innerHTML = '';
+            
+            const categories = {
+                '基础': [0,1,2,3,4,5,6,7,8,9],
+                '植被': [10,11,12,13,14,15,16,17],
+                '建筑': [18,19,20,21,22,23],
+                '岩石': [24,25,26,27],
+                '道路': [28,29,30,31],
+                '装饰': [32,33,34,35,36,37,38,39],
+                '特殊': [40,41]
+            };
+            
+            const emojis = ['🌿','🟫','🪨','🏜️','❄️','💧','🍄','🏠','🏰','🪵','🔑','✨'];
+            
+            for (const [category, ids] of Object.entries(categories)) {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'category';
+                catDiv.innerHTML = `<div class="category-title">${category}</div>`;
+                
+                const grid = document.createElement('div');
+                grid.className = 'tile-grid';
+                
+                ids.forEach(id => {
+                    const tile = TILE_TYPES[id];
+                    if (!tile) return;
+                    
+                    const btn = document.createElement('div');
+                    btn.className = 'tile-btn' + (id === 0 ? ' selected' : '');
+                    btn.style.backgroundColor = tile.color;
+                    btn.title = tile.name;
+                    btn.dataset.id = id;
+                    btn.onclick = () => selectTile(id);
+                    grid.appendChild(btn);
+                });
+                
+                catDiv.appendChild(grid);
+                palette.appendChild(catDiv);
+            }
+        }
+        
+        function selectTile(id) {
+            selectedTile = id;
+            document.querySelectorAll('.tile-btn').forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.dataset.id) === id);
+            });
+        }
+        
+        // 新建地图
+        function newMap() {
+            const width = parseInt(document.getElementById('map-width').value);
+            const height = parseInt(document.getElementById('map-height').value);
+            
+            mapData = new MapData({ width, height, name: '新地图' });
+            
+            // 默认地形
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                        mapData.setTile(x, y, 'terrain', 11); // 大树
+                    } else if (Math.random() < 0.05) {
+                        mapData.setTile(x, y, 'terrain', Math.random() < 0.5 ? 10 : 13); // 小树或灌木
+                    } else {
+                        mapData.setTile(x, y, 'terrain', 0); // 草地
+                    }
+                }
+            }
+            
+            saveHistory();
+            resizeCanvas();
+            render();
+            updateObjectList();
+        }
+        
+        function resizeMap() {
+            newMap();
+        }
+        
+        function resizeCanvas() {
+            canvasWidth = mapData.width * TILE_SIZE;
+            canvasHeight = mapData.height * TILE_SIZE;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            
+            const container = document.getElementById('canvas-area');
+            const scale = Math.min(
+                (container.clientWidth - 40) / canvasWidth,
+                (container.clientHeight - 40) / canvasHeight,
+                1
+            );
+            canvas.style.width = (canvasWidth * scale) + 'px';
+            canvas.style.height = (canvasHeight * scale) + 'px';
+        }
+        
+        // 渲染
+        function render() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            const showGrid = document.getElementById('show-grid').checked;
+            
+            for (let y = 0; y < mapData.height; y++) {
+                for (let x = 0; x < mapData.width; x++) {
+                    const tileId = mapData.getTile(x, y, 'terrain');
+                    const tile = TILE_TYPES[tileId] || TILE_TYPES[0];
+                    
+                    const px = x * TILE_SIZE;
+                    const py = y * TILE_SIZE;
+                    
+                    // 绘制瓦片
+                    ctx.fillStyle = tile.color;
+                    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                    
+                    // 绘制细节
+                    if (tile.category === '植被' && tileId >= 10 && tileId <= 17) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.beginPath();
+                        ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE/3, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                    
+                    // 网格
+                    if (showGrid) {
+                        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                        ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            }
+            
+            // 绘制对象
+            mapData.objects.forEach(obj => {
+                const px = obj.x * TILE_SIZE;
+                const py = obj.y * TILE_SIZE;
+                
+                ctx.fillStyle = 'rgba(255,215,0,0.3)';
+                ctx.fillRect(px, py, obj.width * TILE_SIZE, obj.height * TILE_SIZE);
+                ctx.strokeStyle = '#ffd700';
+                ctx.strokeRect(px, py, obj.width * TILE_SIZE, obj.height * TILE_SIZE);
+                
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(obj.emoji || '?', px + obj.width * TILE_SIZE / 2, py + obj.height * TILE_SIZE / 2);
+            });
+            
+            document.getElementById('map-size').textContent = `尺寸: ${mapData.width}×${mapData.height}`;
+        }
+        
+        // 事件
+        function initEvents() {
+            canvas.addEventListener('mousedown', e => {
+                isDrawing = true;
+                paint(e);
+            });
+            
+            canvas.addEventListener('mousemove', e => {
+                const pos = getTilePos(e);
+                document.getElementById('cursor-pos').textContent = `坐标: (${pos.x}, ${pos.y})`;
+                if (isDrawing) paint(e);
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                if (isDrawing) saveHistory();
+                isDrawing = false;
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                if (isDrawing) saveHistory();
+                isDrawing = false;
+            });
+            
+            // 触摸支持
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault();
+                isDrawing = true;
+                paint(e.touches[0]);
+            });
+            
+            canvas.addEventListener('touchmove', e => {
+                e.preventDefault();
+                if (isDrawing) paint(e.touches[0]);
+            });
+            
+            canvas.addEventListener('touchend', () => {
+                if (isDrawing) saveHistory();
+                isDrawing = false;
+            });
+        }
+        
+        function getTilePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scale = canvas.width / rect.width;
+            const x = Math.floor((e.clientX - rect.left) * scale / TILE_SIZE);
+            const y = Math.floor((e.clientY - rect.top) * scale / TILE_SIZE);
+            return { x, y };
+        }
+        
+        function paint(e) {
+            const pos = getTilePos(e);
+            
+            if (pos.x < 0 || pos.x >= mapData.width || pos.y < 0 || pos.y >= mapData.height) return;
+            
+            switch(currentTool) {
+                case 'brush':
+                    mapData.setTile(pos.x, pos.y, 'terrain', selectedTile);
+                    break;
+                case 'rect':
+                    // 简化：点击画一个点
+                    mapData.setTile(pos.x, pos.y, 'terrain', selectedTile);
+                    break;
+                case 'fill':
+                    fillTiles(pos.x, pos.y, selectedTile);
+                    break;
+                case 'eraser':
+                    mapData.setTile(pos.x, pos.y, 'terrain', 0);
+                    break;
+            }
+            
+            render();
+        }
+        
+        function fillTiles(startX, startY, newType) {
+            const oldType = mapData.getTile(startX, startY, 'terrain');
+            if (oldType === newType) return;
+            
+            const stack = [[startX, startY]];
+            const visited = new Set();
+            
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                const key = `${x},${y}`;
+                
+                if (visited.has(key)) continue;
+                if (x < 0 || x >= mapData.width || y < 0 || y >= mapData.height) continue;
+                if (mapData.getTile(x, y, 'terrain') !== oldType) continue;
+                
+                visited.add(key);
+                mapData.setTile(x, y, 'terrain', newType);
+                
+                stack.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
+            }
+        }
+        
+        // 工具
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            document.getElementById('tool-status').textContent = '工具: ' + 
+                { brush: '画笔', rect: '矩形', fill: '填充', eraser: '橡皮' }[tool];
+        }
+        
+        // 历史记录
+        function saveHistory() {
+            const state = Array.from(mapData.layers.terrain.data);
+            history = history.slice(0, historyIndex + 1);
+            history.push(state);
+            historyIndex = history.length - 1;
+            
+            if (history.length > 50) {
+                history.shift();
+                historyIndex--;
+            }
+        }
+        
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                mapData.layers.terrain.data = new Int16Array(history[historyIndex]);
+                render();
+            }
+        }
+        
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                mapData.layers.terrain.data = new Int16Array(history[historyIndex]);
+                render();
+            }
+        }
+        
+        // 文件操作
+        function updateMapInfo() {
+            if (mapData) {
+                mapData.name = document.getElementById('map-name').value;
+            }
+        }
+        
+        function exportJSON() {
+            document.getElementById('io-title').textContent = '导出JSON';
+            document.getElementById('io-content').value = JSON.stringify(mapData.toJSON(), null, 2);
+            window.ioMode = 'export';
+            document.getElementById('io-modal').classList.add('show');
+        }
+        
+        function importJSON() {
+            document.getElementById('io-title').textContent = '导入JSON';
+            document.getElementById('io-content').value = '';
+            window.ioMode = 'import';
+            document.getElementById('io-modal').classList.add('show');
+        }
+        
+        function ioConfirm() {
+            if (window.ioMode === 'export') {
+                const blob = new Blob([document.getElementById('io-content').value], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = mapData.name + '.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                try {
+                    const json = JSON.parse(document.getElementById('io-content').value);
+                    mapData = MapData.fromJSON(json);
+                    document.getElementById('map-name').value = mapData.name;
+                    document.getElementById('map-width').value = mapData.width;
+                    document.getElementById('map-height').value = mapData.height;
+                    resizeCanvas();
+                    saveHistory();
+                    render();
+                    updateObjectList();
+                } catch(e) {
+                    alert('导入失败: ' + e.message);
+                }
+            }
+            ioClose();
+        }
+        
+        function ioClose() {
+            document.getElementById('io-modal').classList.remove('show');
+        }
+        
+        function saveMap() {
+            localStorage.setItem('editor_map', JSON.stringify(mapData.toJSON()));
+            alert('已保存到本地存储');
+        }
+        
+        function openMap() {
+            const data = localStorage.getItem('editor_map');
+            if (data) {
+                try {
+                    const json = JSON.parse(data);
+                    mapData = MapData.fromJSON(json);
+                    document.getElementById('map-name').value = mapData.name;
+                    document.getElementById('map-width').value = mapData.width;
+                    document.getElementById('map-height').value = mapData.height;
+                    resizeCanvas();
+                    saveHistory();
+                    render();
+                    updateObjectList();
+                } catch(e) {
+                    alert('打开失败: ' + e.message);
+                }
+            } else {
+                alert('没有已保存的地图');
+            }
+        }
+        
+        function testMap() {
+            localStorage.setItem('test_map', JSON.stringify(mapData.toJSON()));
+            window.open('level1.html?mode=editor', '_blank');
+        }
+        
+        function updateObjectList() {
+            const list = document.getElementById('object-list');
+            list.innerHTML = '';
+            
+            mapData.objects.forEach(obj => {
+                const item = document.createElement('div');
+                item.className = 'object-item';
+                item.textContent = `${obj.emoji || '?'} ${obj.name}`;
+                item.onclick = () => {
+                    // 简单聚焦
+                    render();
+                    ctx.strokeStyle = '#fff';
+                    ctx.strokeRect(obj.x * TILE_SIZE, obj.y * TILE_SIZE, obj.width * TILE_SIZE, obj.height * TILE_SIZE);
+                };
+                list.appendChild(item);
+            });
+        }
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html>
