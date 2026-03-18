@@ -1,6 +1,6 @@
 // ============================================
-// 神秘森林 - 第一关游戏逻辑 v8 (T2.5)
-// 关卡系统完善
+// 神秘森林 - 第一关游戏逻辑 v9 (T3.3)
+// 性能优化版本
 // ============================================
 
 // ==================== 关卡配置 ====================
@@ -122,6 +122,9 @@ function updateCamera() {
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
+// 性能优化器
+let perfOptimizer = null;
+
 function initCanvas() {
     const c = document.getElementById('game-container');
     const maxW = Math.min(c.clientWidth, 500), maxH = Math.min(c.clientHeight, 900);
@@ -130,6 +133,11 @@ function initCanvas() {
     const scale = Math.min(maxW / canvas.width, maxH / canvas.height, 1);
     canvas.style.width = (canvas.width * scale) + 'px';
     canvas.style.height = (canvas.height * scale) + 'px';
+    
+    // 初始化性能优化器
+    if (typeof PerformanceOptimizer !== 'undefined') {
+        perfOptimizer = new PerformanceOptimizer();
+    }
 }
 window.addEventListener('resize', initCanvas);
 initCanvas();
@@ -137,9 +145,25 @@ initCanvas();
 let lastTime = 0, moveTimer = 0;
 
 function gameLoop(timestamp) {
-    const dt = timestamp - lastTime; lastTime = timestamp;
-    if (!gameState.gameComplete) update(dt);
-    updateCamera(); render();
+    // 性能监控开始
+    if (perfOptimizer) perfOptimizer.beginFrame();
+    
+    // 帧率控制 (目标30fps)
+    if (!perfOptimizer || perfOptimizer.shouldRender(timestamp)) {
+        const dt = timestamp - lastTime; lastTime = timestamp;
+        if (!gameState.gameComplete) update(dt);
+        updateCamera(); render();
+    }
+    
+    // 性能监控结束
+    if (perfOptimizer) {
+        const stats = perfOptimizer.endFrame();
+        // 可选：每60帧更新一次FPS显示
+        if (stats.frameCount % 60 === 0) {
+            // console.log('FPS:', stats.fps);
+        }
+    }
+    
     requestAnimationFrame(gameLoop);
 }
 
