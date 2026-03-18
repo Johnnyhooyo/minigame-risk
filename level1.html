@@ -75,12 +75,17 @@
             right: 0;
             height: 56px;
             padding: 12px 16px;
-            background: linear-gradient(180deg, var(--glass-bg) 0%, transparent 100%);
+            /* 透明渐变背景+森林元素 */
+            background: linear-gradient(180deg, 
+                rgba(13, 31, 13, 0.95) 0%, 
+                rgba(45, 106, 79, 0.6) 50%,
+                rgba(13, 31, 13, 0.3) 100%);
+            backdrop-filter: blur(10px);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
-            border-bottom: 1px solid rgba(64, 145, 108, 0.2);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.15);
         }
 
         .status-item {
@@ -95,6 +100,17 @@
         .status-item .icon { 
             font-size: 20px;
             filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+        
+        .status-item .icon.leaf { animation-delay: 0s; }
+        .status-item .icon.gem { animation-delay: 1s; }
+        .status-item .icon.music { animation-delay: 2s; }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-2px) rotate(5deg); }
+            75% { transform: translateY(2px) rotate(-5deg); }
         }
         
         .status-item .value { 
@@ -148,21 +164,73 @@
             left: 20px;
             width: 120px;
             height: 120px;
-            /* 木质/树皮纹理边框 */
-            background: radial-gradient(circle, rgba(45, 106, 79, 0.5) 0%, rgba(45, 106, 79, 0.2) 100%);
-            border: 3px solid rgba(255, 215, 0, 0.25);
+            /* 木质纹理边框 */
+            background: 
+                /* 木纹层 */
+                radial-gradient(ellipse at 30% 30%, rgba(93, 64, 55, 0.8) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 60%, rgba(62, 39, 35, 0.9) 0%, transparent 40%),
+                radial-gradient(ellipse at 50% 80%, rgba(93, 64, 55, 0.7) 0%, transparent 45%),
+                /* 基底 */
+                linear-gradient(135deg, #5D4037 0%, #3E2723 50%, #4E342E 100%);
+            border: 4px solid #8D6E63;
             border-radius: 50%;
             z-index: 50;
             touch-action: none;
             box-shadow: 
-                0 0 20px rgba(45, 106, 79, 0.4),
-                inset 0 0 30px rgba(0, 0, 0, 0.3);
+                /* 外发光 */
+                0 0 25px rgba(45, 106, 79, 0.5),
+                /* 内阴影 */
+                inset 0 0 25px rgba(0, 0, 0, 0.5),
+                inset 0 0 50px rgba(0, 0, 0, 0.3),
+                /* 底部高光 */
+                0 5px 15px rgba(0, 0, 0, 0.5);
             animation: joystickPulse 2s ease-in-out infinite;
+            /* 木纹纹理 */
+            background-size: 100% 100%;
+        }
+
+        /* 木纹装饰线 */
+        #joystick-area::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            bottom: 8px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* 魔法符文装饰 */
+        #joystick-area::after {
+            content: '᛭ ✦ ᛭';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: rgba(255, 215, 0, 0.15);
+            letter-spacing: 4px;
+            pointer-events: none;
         }
 
         @keyframes joystickPulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(45, 106, 79, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.3); }
+            0%, 100% { 
+                box-shadow: 
+                    0 0 25px rgba(45, 106, 79, 0.5),
+                    inset 0 0 25px rgba(0, 0, 0, 0.5),
+                    inset 0 0 50px rgba(0, 0, 0, 0.3),
+                    0 5px 15px rgba(0, 0, 0, 0.5);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 35px rgba(255, 215, 0, 0.4),
+                    0 0 50px rgba(123, 44, 191, 0.3),
+                    inset 0 0 25px rgba(0, 0, 0, 0.5),
+                    inset 0 0 50px rgba(0, 0, 0, 0.3),
+                    0 5px 15px rgba(0, 0, 0, 0.5);
+            }
         }
 
         #joystick-knob {
@@ -172,31 +240,60 @@
             transform: translate(-50%, -50%);
             width: 50px;
             height: 50px;
-            /* 魔法符文风格 */
-            background: radial-gradient(circle, #40916C 0%, #2D6A4F 100%);
+            /* 魔法符文风格 + 木质中心 */
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+                radial-gradient(circle, #40916C 0%, #2D6A4F 60%, #1B5E20 100%);
             border-radius: 50%;
             cursor: pointer;
             box-shadow: 
-                0 0 20px rgba(255, 215, 0, 0.4),
-                0 4px 15px rgba(0, 0, 0, 0.4);
+                /* 魔法光晕 */
+                0 0 20px rgba(255, 215, 0, 0.5),
+                0 0 40px rgba(123, 44, 191, 0.3),
+                /* 阴影 */
+                0 4px 15px rgba(0, 0, 0, 0.5),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.3);
             transition: transform 0.1s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             color: var(--gold);
+            /* 符文边框 */
+            border: 2px solid rgba(255, 215, 0, 0.4);
+        }
+
+        /* 摇杆中心符文 */
+        #joystick-knob::before {
+            content: '✧';
+            text-shadow: 0 0 10px var(--gold), 0 0 20px rgba(255, 215, 0, 0.5);
+            font-size: 18px;
+            animation: runeGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes runeGlow {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
         }
 
         #joystick-knob::after {
-            content: '✦';
-            text-shadow: 0 0 10px var(--gold);
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 50%;
         }
 
         #joystick-knob:active, #joystick-knob.active {
             transform: translate(-50%, -50%) scale(1.1);
             box-shadow: 
-                0 0 40px rgba(255, 215, 0, 0.6),
-                0 0 60px rgba(123, 44, 191, 0.4);
+                0 0 50px rgba(255, 215, 0, 0.7),
+                0 0 80px rgba(123, 44, 191, 0.5),
+                0 0 100px rgba(45, 106, 79, 0.4),
+                0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
         /* ==================== 背包按钮 ==================== */
@@ -245,14 +342,38 @@
             font-size: 15px;
             display: none;
             z-index: 80;
-            border: 2px solid rgba(255, 215, 0, 0.2);
-            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(45, 106, 79, 0.2);
-            animation: slideUp 0.3s ease-out;
+            border: 2px solid rgba(255, 215, 0, 0.25);
+            box-shadow: 
+                0 -10px 40px rgba(0, 0, 0, 0.5), 
+                0 0 30px rgba(45, 106, 79, 0.3),
+                inset 0 1px 0 rgba(255, 215, 0, 0.1);
+            /* 滑入动画 */
+            animation: dialogueSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        @keyframes dialogueSlideIn {
+            from { 
+                transform: translateY(30px) scale(0.95); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateY(0) scale(1); 
+                opacity: 1; 
+            }
+        }
+
+        /* 对话框顶部装饰 */
+        #dialogue-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 215, 0, 0.5) 50%, 
+                transparent 100%);
         }
 
         #dialogue-box .npc-avatar {
@@ -266,9 +387,17 @@
             font-size: 26px;
             margin-bottom: 12px;
             border: 2px solid var(--gold);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.5),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2);
             float: left;
             margin-right: 12px;
+            animation: avatarPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), inset 0 -3px 10px rgba(0, 0, 0, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.7), inset 0 -3px 10px rgba(0, 0, 0, 0.2); }
         }
 
         #dialogue-box .npc-name {
@@ -286,6 +415,21 @@
             margin-bottom: 12px;
             min-height: 44px;
             color: var(--text-primary);
+            /* 打字机光标 */
+            .typewriter-cursor {
+                display: inline-block;
+                width: 2px;
+                height: 1em;
+                background: var(--gold);
+                margin-left: 2px;
+                animation: cursorBlink 0.8s infinite;
+                vertical-align: text-bottom;
+            }
+        }
+
+        @keyframes cursorBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         #dialogue-box .continue {
@@ -293,6 +437,11 @@
             color: var(--text-muted);
             font-size: 12px;
             animation: pulse 1s infinite;
+        }
+
+        #dialogue-box .continue::before {
+            content: '▸ ';
+            color: var(--gold);
         }
 
         @keyframes pulse {
@@ -324,14 +473,45 @@
         #inventory-modal.show { display: flex; }
 
         #inventory-content {
-            /* 木质/皮革纹理边框 */
-            background: linear-gradient(135deg, #1A3A1A 0%, #0D1F0D 100%);
+            /* 木质边框 + 森林主题 */
+            background: 
+                /* 木纹层 */
+                linear-gradient(135deg, rgba(93, 64, 55, 0.3) 0%, transparent 50%),
+                linear-gradient(225deg, rgba(93, 64, 55, 0.3) 0%, transparent 50%),
+                /* 基底 */
+                linear-gradient(135deg, #1A3A1A 0%, #0D1F0D 100%);
             border-radius: 20px;
             padding: 24px;
             width: 85%;
             max-width: 340px;
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(45, 106, 79, 0.2);
+            border: 3px solid rgba(139, 90, 43, 0.6);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.6),
+                0 0 40px rgba(45, 106, 79, 0.3),
+                inset 0 1px 0 rgba(255, 215, 0, 0.1),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+            /* 木框装饰 */
+            position: relative;
+        }
+
+        /* 木框角落装饰 */
+        #inventory-content::before,
+        #inventory-content::after {
+            content: '❖';
+            position: absolute;
+            font-size: 16px;
+            color: rgba(255, 215, 0, 0.4);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        #inventory-content::before {
+            top: 8px;
+            left: 8px;
+        }
+
+        #inventory-content::after {
+            top: 8px;
+            right: 8px;
         }
 
         #inventory-content h3 {
@@ -343,6 +523,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
         }
 
         #inventory-content h3::before,
@@ -360,25 +541,62 @@
 
         .inv-slot {
             aspect-ratio: 1;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: 
+                linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 28px;
-            transition: all 0.2s;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 格子内部高光 */
+        .inv-slot::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+            pointer-events: none;
         }
 
         .inv-slot.has-item {
-            background: rgba(255, 215, 0, 0.1);
+            background: 
+                radial-gradient(circle at center, rgba(255, 215, 0, 0.15) 0%, rgba(0, 0, 0, 0.3) 100%);
             border: 2px solid var(--gold);
             animation: itemShine 2s infinite;
         }
 
+        /* 物品闪光效果 */
         @keyframes itemShine {
-            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-            50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            0%, 100% { 
+                box-shadow: 
+                    0 0 15px rgba(255, 215, 0, 0.4),
+                    inset 0 0 10px rgba(255, 215, 0, 0.1);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 25px rgba(255, 215, 0, 0.6),
+                    0 0 40px rgba(255, 215, 0, 0.3),
+                    inset 0 0 15px rgba(255, 215, 0, 0.2);
+            }
+        }
+
+        /* 物品获得时的动画 */
+        .inv-slot.item-added {
+            animation: itemAdded 0.5s ease-out;
+        }
+
+        @keyframes itemAdded {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         #close-inv {
@@ -386,18 +604,19 @@
             margin: 24px auto 0;
             background: linear-gradient(135deg, #40916C 0%, #2D6A4F 100%);
             color: #fff;
-            border: 1px solid rgba(255, 215, 0, 0.3);
+            border: 2px solid rgba(255, 215, 0, 0.3);
             padding: 12px 32px;
             border-radius: 24px;
             font-size: 15px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(45, 106, 79, 0.4);
         }
 
         #close-inv:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
             border-color: var(--gold);
         }
 
@@ -521,12 +740,15 @@
         <!-- 顶部状态栏 -->
         <div id="top-bar">
             <div class="status-item">
-                <span class="icon">🍃</span>
+                <span class="icon leaf">🍃</span>
                 <span id="playerName">冒险家</span>
             </div>
             <div class="status-item">
-                <span class="icon">💎</span>
+                <span class="icon gem">💎</span>
                 <span class="value"><span id="fragmentCount">0</span>/3</span>
+            </div>
+            <div class="status-item" style="cursor: pointer;" onclick="toggleMute()">
+                <span class="icon music" id="audioIcon">🔊</span>
             </div>
             <button id="exit-btn" onclick="exitGame()">退出</button>
         </div>
@@ -587,6 +809,137 @@
         </div>
     </div>
 
+    <script src="./assets/scripts/audio-system.js"></script>
     <script src="./assets/scripts/level1-game.js"></script>
+    <script>
+        // ========== T3.1 UI增强: 打字机效果 ==========
+        let typewriterTimer = null;
+        let typewriterSpeed = 30; // 毫秒/字符
+        
+        function typewriterEffect(element, text, callback) {
+            // 清除之前的定时器
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+            }
+            
+            element.innerHTML = '';
+            let index = 0;
+            
+            // 创建光标
+            const cursor = document.createElement('span');
+            cursor.className = 'typewriter-cursor';
+            
+            typewriterTimer = setInterval(() => {
+                if (index < text.length) {
+                    element.textContent = text.substring(0, index + 1);
+                    element.appendChild(cursor);
+                    index++;
+                } else {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    if (callback) callback();
+                }
+            }, typewriterSpeed);
+        }
+        
+        // 跳过打字机效果
+        function skipTypewriter(element, fullText) {
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+                typewriterTimer = null;
+            }
+            element.textContent = fullText;
+        }
+        
+        // ========== T3.2 音效集成 ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化音频系统
+            initAudio();
+            
+            // 点击按钮时播放音效
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    playClick();
+                });
+            });
+            
+            // 背包按钮点击
+            const invBtn = document.getElementById('inventory-btn');
+            if (invBtn) {
+                invBtn.addEventListener('click', () => {
+                    playClick();
+                });
+            }
+            
+            // 对话框点击继续
+            const dialogueBox = document.getElementById('dialogue-box');
+            if (dialogueBox) {
+                dialogueBox.addEventListener('click', () => {
+                    playDialogue();
+                });
+            }
+            
+            // 静音按钮
+            window.toggleMute = function() {
+                const muted = audioManager.toggleMute();
+                const icon = document.getElementById('audioIcon');
+                if (icon) {
+                    icon.textContent = muted ? '🔇' : '🔊';
+                }
+            };
+        });
+        
+        // 物品收集时播放音效
+        window.showTip = function(text) {
+            const tip = document.getElementById('tip');
+            if (tip) {
+                tip.textContent = text;
+                tip.style.display = 'block';
+                playPickup();
+                setTimeout(() => {
+                    tip.style.display = 'none';
+                }, 2000);
+            }
+        };
+        
+        // 游戏胜利时播放音效
+        window.showVictory = function() {
+            playVictory();
+        };
+        
+        // 对话显示时播放音效
+        window.showDialogue = function(name, text, avatar) {
+            const npcNameEl = document.getElementById('npcName');
+            const dialogueTextEl = document.getElementById('dialogueText');
+            const npcAvatarEl = document.getElementById('npcAvatar');
+            const dialogueBox = document.getElementById('dialogue-box');
+            
+            if (npcNameEl) npcNameEl.textContent = name;
+            if (npcAvatarEl) npcAvatarEl.textContent = avatar || '👴';
+            if (dialogueBox) dialogueBox.style.display = 'block';
+            
+            // 使用打字机效果
+            if (dialogueTextEl) {
+                typewriterEffect(dialogueTextEl, text, () => {
+                    // 打字完成后的回调
+                });
+            }
+            
+            playDialogue();
+        };
+        
+        // 隐藏对话框时停止打字
+        window.hideDialogue = function() {
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+                typewriterTimer = null;
+            }
+            const dialogueBox = document.getElementById('dialogue-box');
+            if (dialogueBox) {
+                dialogueBox.style.display = 'none';
+            }
+        };
+    </script>
 </body>
 </html>
