@@ -51,6 +51,8 @@
             position: relative;
             background: linear-gradient(180deg, var(--bg-darkest) 0%, var(--bg-dark) 50%, var(--bg-light) 100%);
             overflow: hidden;
+            /* 多平台适配 */
+            transform-origin: center center;
         }
 
         /* ==================== 游戏画布 ==================== */
@@ -811,6 +813,7 @@
 
     <script src="./assets/scripts/audio-system.js"></script>
     <script src="./assets/scripts/performance.js"></script>
+    <script src="./assets/scripts/platform-adapter.js"></script>
     <script src="./assets/scripts/level1-game.js"></script>
     <script>
         // ========== T3.1 UI增强: 打字机效果 ==========
@@ -852,8 +855,19 @@
             element.textContent = fullText;
         }
         
-        // ========== T3.2 音效集成 ==========
-        document.addEventListener('DOMContentLoaded', () => {
+        // ========== T3.4 多平台适配 ==========
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 初始化平台适配
+            const adapter = await initPlatformAdapter();
+            const info = adapter.getAdapterInfo();
+            console.log('Platform Adapter Info:', info);
+            
+            // 根据平台调整UI
+            if (info.platform.platform === 'pc') {
+                // PC模式：启用鼠标操作提示
+                document.body.style.cursor = 'default';
+            }
+            
             // 初始化音频系统
             initAudio();
             
